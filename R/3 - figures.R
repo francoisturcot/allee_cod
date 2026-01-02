@@ -37,7 +37,7 @@ df_plot <- df_plot %>%
     )
 
 ggplot(df_plot, aes(biomass, prod.rate, color = collapsed)) +
-    geom_point(size = 1) +
+    geom_line(size = 1) +
     #geom_smooth(method = "lm", se = FALSE) +
     facet_wrap(~ stock, scales = "free") +
     theme_bw()
