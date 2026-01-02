@@ -32,6 +32,8 @@ df$prod.rate = df$sp/df$biomass
 dat  <- readRDS("../data/RAM_dat.RDS")
 meta <- readRDS("../data/RAM_meta.RDS")
 
+
+
 #--------------------------------------------------
 # Filter cod stocks & compute production rate
 #--------------------------------------------------
@@ -75,3 +77,8 @@ df = df %>% filter(!stock %in% rm)
 stock = unique(df$stock)
 stock = sort(stock)
 stock
+
+meta$stock = meta$stockid
+y = data.frame(stock)
+x = left_join(y, meta, by = c("stock"))
+write.csv(x, "../figures/meta.csv")
