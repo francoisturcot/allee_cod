@@ -4,12 +4,16 @@ library(purrr)
 library(segmented)
 library(broom)  
 
+options(scipen = 999)
+
 
 ### read NW atlantic cod stocks data
 
 df = read.csv("../data/cod table.csv")
 df$ssb = NULL
 
+df$biomass = df$biomass/1000
+df$catch = df$catch/1000
 #calculate surplus production
 df$sp = NA #prepare vector
 str(df)
@@ -24,7 +28,7 @@ df <- df %>%
 
 df = na.omit(df)
 df$prod.rate = df$sp/df$biomass
-
+hist(df$prod.rate)
 
 #--------------------------------------------------
 # Load RAM data
@@ -32,14 +36,20 @@ df$prod.rate = df$sp/df$biomass
 dat  <- readRDS("../data/RAM_dat.RDS")
 meta <- readRDS("../data/RAM_meta.RDS")
 
-
-
 #--------------------------------------------------
 # Filter cod stocks & compute production rate
 #--------------------------------------------------
+dat$biomass = dat$biomass/1000
+dat$catch = dat$catch/1000
 df2 <- dat %>%
     filter(str_detect(species, regex("cod", ignore_case = TRUE))) %>%
-    filter(species != "SOLECWAGAB-COD") %>%
+    filter(species != "SOLECWAGAB-COD") 
+
+plot(df2$biomass,df2$catch)
+
+
+#double check units for biomass and units for catch from RAM
+df2 = df2 %>% 
     group_by(species) %>%
     arrange(year) %>%
     mutate(
@@ -49,6 +59,7 @@ df2 <- dat %>%
     ungroup() %>%
     drop_na(prod.rate, biomass)
 
+df2$prod.rate
 
 df_clean <- df %>%
     mutate(year = as.integer(year))

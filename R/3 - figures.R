@@ -1,3 +1,23 @@
+options(scipen = 999)
+
+#remove repeat stocks (shorter time series of 2j3kl and 4tvn)
+
+df = df %>% filter(!stock %in% c("4tvn", "2j3kl"))
+
+#standardize name formats
+unique(df$stock)
+str(df)
+df$stock[df$stock == "4tvn-SPM"] = "4TVn"
+df$stock[df$stock == "2j3kl-SPM"] = "2J3KL"
+df$stock[df$stock == "4vsw"] = "4VsW"
+
+unique(res$stock)
+res = res %>% filter(!stock %in% c("4tvn", "2j3kl"))
+res$stock[res$stock == "4tvn-SPM"] = "4TVn"
+res$stock[res$stock == "2j3kl-SPM"] = "2J3KL"
+res$stock[res$stock == "4vsw"] = "4VsW"
+
+#plots
 df %>% ggplot(aes(year, biomass))+
     geom_line()+
     facet_wrap(.~stock, scales = "free")+
@@ -53,6 +73,8 @@ ggplot(df_plot, aes(year, biomass, color = collapsed)) +
     geom_point(size = 1) +
     facet_wrap(~ stock, scales = "free") +
     theme_bw() +
+    xlab("Year")+
+    ylab("Biomass")+
     theme(
         legend.position = "none",
         axis.text.x = element_blank(),
@@ -111,7 +133,7 @@ ggplot(df_plot, aes(x = biomass, y = prod.rate)) +
     theme_bw() +
     labs(
         x = "Year",
-        y = "Biomass"
+        y = "Production rate"
     )
 
 df_plot <- df_plot %>%
@@ -184,7 +206,6 @@ stock_flip <- res %>%
 
 stock_flip$recovery=NA
 stock_flip$stock
-stock_flip$recovery=c(0,0,0,0,0,1,0)
 stock_flip
 
 #Allee effect strength As “The allee effect reduces production by x percent relative to normal conditions.”
@@ -283,16 +304,16 @@ ggplot(df_plot, aes(x = biomass, y = prod.rate)) +
                linetype = "dashed",
                linewidth = 0.8) +
     
-    facet_wrap(~ stock, scales = "free") +
-    theme_bw() +
+    facet_wrap(~ stock, scales = "free", ncol = 2) +
+  theme_bw() +
     theme(legend.position = "none") +
     labs(
-        x = "Biomass",
+        x = "Biomass (kt)",
         y = "Production rate",
         color = "Segment"
     )
 
-ggsave("../figures/segmented_flip_stocks.png", width = 10, height = 10)
+ggsave("../figures/segmented_flip_stocks.png", width = 7, height = 8)
 
 
 res_only <- res %>%
@@ -350,17 +371,41 @@ ggplot(df_plot, aes(biomass, prod.rate, color = collapsed)) +
 ggplot(df_plot, aes(biomass, prod.rate)) +
     geom_point(size = 1) +
     geom_smooth(method = "lm", se = FALSE) +
-    facet_wrap(~ stock, scales = "free") +
-    theme_bw()
+    facet_wrap(~ stock, scales = "free",ncol=3) +
+    theme_bw()+
+  ylab("Production rate")+
+  xlab("Biomass (kt)")
 
-ggsave("../figures/lm.png", width = 8, height = 6)
+ggsave("../figures/lm.png", width = 7, height = 8)
 
 
-allee_lm = c("2j3kl", "3Pn4RS", "4X5Y", "COD3M")
-stock_lm =  res %>% filter(stock %in% allee_lm)
-#stock_lm$recovery = c(0,0,0,1)
-stock_lm    
-stock_lm$As = NA
+#the criterias for a stock with a lm to be under allee effect is 
+#slope not significantly negative
+#or a significantly positive slope
 
-#allee = rbind(stock_flip,stock_lm)
-#write.csv(allee, "../figures/allee_table.csv")
+#the lm significant slope test if the slope is different from zero. 
+#if its not, its still depensation, as it is not compensation
+#so everything that is not significant negative slope is depensation
+
+res2 = res %>% filter(!stock %in% unique(stock_flip$stock))
+res2
+res2$type = NA
+
+idx <- res2$slope3 < 0 #& res2$p3<0.05
+res2$type[idx] <- "compensation"
+
+idx <- res2$slope3 > 0 #& res2$p3<0.05
+res2$type[idx] <- "depensation"
+
+res2
+
+idx <- res2$slope3 > 0 & res2$p3<0.05
+res2$type[idx] <- "depensation"
+
+res2
+
+
+idx <- is.na(res2$type)
+res2$type[idx] <- "depensation"
+
+res2
