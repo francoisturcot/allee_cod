@@ -1,4 +1,5 @@
 source("1 - get data.R")
+library(mgcv)
 
 # calculate lrp as 40% max biomass
 # calculate level of depletion as minimum biomass / lrp
@@ -28,6 +29,17 @@ for (i in 1:ns){
     
     s = stock[i]
     temp = df %>% filter(stock == s)
+    
+    
+    #gam
+    #i=1
+    #i=i+1
+    #s = stock[i]
+    #temp = df %>% filter(stock == s)
+    #g1 = gam(prod.rate~s(biomass, k = 3), data = temp)
+    #summary(g1)
+    #plot.gam(g1)
+    #s
     
     #lm
     model = lm(prod.rate~biomass, data = temp)
