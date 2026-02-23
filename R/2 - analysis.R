@@ -17,7 +17,7 @@ df_depletion <- df %>%
 #perform segmented and linear regressions on each stocks
 
 ns = length(unique(df$stock))
-res = data.frame(stock = NA,  psi = NA, lower=NA, higher=NA, 
+res = data.frame(stock = NA,  depensatory_lm = NA, depensatory_seg = NA, psi = NA, lower=NA, higher=NA, 
                  lm_AIC = NA, seg_AIC = NA, 
                  slope1 = NA, slope2 = NA, slope3 = NA,
                  p1 = NA,p2=NA,p3=NA, 
@@ -43,9 +43,12 @@ for (i in 1:ns){
     
     #lm
     model = lm(prod.rate~biomass, data = temp)
+    depensatory_lm = coefficients(model)[2]>0
     
     #segmented
     segmented <- segmented(model, seg.Z = ~biomass)
+    #save segmented regression breakpoint (phi)
+    psi = segmented$psi[2]
     
     #save AIC
     t1 = AIC(model, segmented)
@@ -53,8 +56,6 @@ for (i in 1:ns){
     m_AIC = t1 %>% filter(model == "model")
     s_AIC = t1 %>% filter(model == "segmented")
     
-    #save segmented regression breakpoint (phi)
-    psi = segmented$psi[2]
     
     # Add a column to indicate which segment each row belongs to
     temp <- temp %>%
@@ -66,6 +67,7 @@ for (i in 1:ns){
     # Fit linear regressions before and after the break
     m1 <- lm(prod.rate ~ biomass, data = temp %>% filter(segment == "before_break"))
     m2 <- lm(prod.rate ~ biomass, data = temp %>% filter(segment == "after_break"))
+    depensatory_seg = coefficients(m1)[2]>0
     
     #save lm slopes
     lower = as.numeric(m1$coefficients[2])
@@ -108,7 +110,9 @@ for (i in 1:ns){
                         p2 = p_slope2,
                         p3 = p_slope3,
                         As = As,
-                        delta_0 = delta_0)
+                        delta_0 = delta_0,
+                        depensatory_lm = depensatory_lm,
+                        depensatory_seg = depensatory_seg)
 
     res = rbind(res, temp2)
 }
