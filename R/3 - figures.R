@@ -5,7 +5,8 @@ options(scipen = 999)
 df = df %>% filter(!stock %in% c("4tvn", "2j3kl"))
 
 #standardize name formats
-unique(df$stock)
+
+
 str(df)
 df$stock[df$stock == "4tvn-SPM"] = "4TVn"
 df$stock[df$stock == "2j3kl-SPM"] = "2J3KL"
@@ -17,6 +18,22 @@ res$stock[res$stock == "4tvn-SPM"] = "4TVn"
 res$stock[res$stock == "2j3kl-SPM"] = "2J3KL"
 res$stock[res$stock == "4vsw"] = "4VsW"
 
+unique(df$stock)
+length(unique(df$stock))
+
+#get years
+
+df %>%
+    group_by(stock) %>%
+    summarise(
+        min_year = min(year, na.rm = TRUE),
+        max_year = max(year, na.rm = TRUE),
+        .groups = "drop"
+    ) %>%
+    print(n = Inf)
+
+
+
 #plots
 df %>% ggplot(aes(year, biomass))+
     geom_line()+
@@ -25,7 +42,8 @@ df %>% ggplot(aes(year, biomass))+
     ylab("Biomass (kt)")+
     xlab("")
 
-ggsave("biomass.png", width = 8, height = 6)
+
+ggsave("../figures/biomass.png", width = 8, height = 6)
 
 df %>% ggplot(aes(year, prod.rate))+
     geom_line()+
@@ -37,7 +55,7 @@ df %>% ggplot(aes(year, prod.rate))+
     ylab("Production rate")+
     xlab("")
 
-ggsave("production rate.png", width = 8, height = 6)
+ggsave("../figures/production rate.png", width = 8, height = 6)
 
 df_plot <- df %>%
     group_by(stock) %>%
@@ -84,7 +102,7 @@ ggplot(df_plot, aes(year, biomass, color = collapsed)) +
     )
 
 
-ggsave("collapse.png", width = 8, height = 6)
+ggsave("../figures/depletion.png", width = 8, height = 6)
 
 #stocks table
 
@@ -304,16 +322,16 @@ ggplot(df_plot, aes(x = biomass, y = prod.rate)) +
                linetype = "dashed",
                linewidth = 0.8) +
     
-    facet_wrap(~ stock, scales = "free", ncol = 2) +
+    facet_wrap(~ stock, scales = "free", ncol = 3) +
   theme_bw() +
     theme(legend.position = "none") +
     labs(
         x = "Biomass (kt)",
-        y = "Production rate",
+        y = "Production rate (P/B)",
         color = "Segment"
     )
 
-ggsave("../figures/segmented_flip_stocks.png", width = 7, height = 8)
+ggsave("../figures/segmented_flip_stocks.png", width = 6, height = 5)
 
 
 res_only <- res %>%
@@ -373,7 +391,7 @@ ggplot(df_plot, aes(biomass, prod.rate)) +
     geom_smooth(method = "lm", se = FALSE) +
     facet_wrap(~ stock, scales = "free",ncol=3) +
     theme_bw()+
-  ylab("Production rate")+
+  ylab("Production rate (P/B)")+
   xlab("Biomass (kt)")
 
 ggsave("../figures/lm.png", width = 7, height = 8)
