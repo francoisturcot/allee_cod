@@ -43,7 +43,8 @@ dat$biomass = dat$biomass/1000
 dat$catch = dat$catch/1000
 df2 <- dat %>%
     filter(str_detect(species, regex("cod", ignore_case = TRUE))) %>%
-    filter(species != "SOLECWAGAB-COD") 
+    filter(species != "SOLECWAGAB-COD") %>% 
+  filter(species != "COD3NO")
 
 plot(df2$biomass,df2$catch)
 

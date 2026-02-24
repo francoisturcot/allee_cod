@@ -102,7 +102,7 @@ ggplot(df_plot, aes(year, biomass, color = collapsed)) +
     )
 
 
-ggsave("../figures/depletion.png", width = 8, height = 6)
+ggsave("../figures/depletion.png", width = 7, height = 6)
 
 #stocks table
 
