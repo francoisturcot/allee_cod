@@ -18,8 +18,13 @@ res$stock[res$stock == "4tvn-SPM"] = "4TVn"
 res$stock[res$stock == "2j3kl-SPM"] = "2J3KL"
 res$stock[res$stock == "4vsw"] = "4VsW"
 
+df$stock  <- sub("^COD", "", df$stock)
+res$stock <- sub("^COD", "", res$stock)
+
 unique(df$stock)
+unique(res$stock)
 length(unique(df$stock))
+length(unique(res$stock))
 
 #get years
 
@@ -103,6 +108,7 @@ ggplot(df_plot, aes(year, biomass, color = collapsed)) +
 
 
 ggsave("../figures/depletion.png", width = 7, height = 6)
+
 
 #stocks table
 
@@ -426,4 +432,43 @@ res2
 idx <- is.na(res2$type)
 res2$type[idx] <- "depensation"
 
-res2
+
+str(res2)
+
+ggplot(df_plot, aes(biomass, prod.rate)) +
+  geom_point(size = 1) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~ stock, scales = "free",ncol=3) +
+  theme_bw()+
+  ylab("Production rate (P/B)")+
+  xlab("Biomass (kt)")
+
+
+library(dplyr)
+library(ggplot2)
+
+# split stocks by type
+stocks_by_type <- split(res2$stock, res2$type)
+
+plots <- lapply(names(stocks_by_type), function(tp) {
+  
+  df_sub <- df_plot %>% 
+    filter(stock %in% stocks_by_type[[tp]])
+  
+  ggplot(df_sub, aes(biomass, prod.rate)) +
+    geom_point(size = 1) +
+    geom_smooth(method = "lm", se = FALSE) +
+    facet_wrap(~ stock, scales = "free", ncol = 3) +
+    theme_bw() +
+    ylab("Production rate (P/B)") +
+    xlab("Biomass (kt)") #+
+    #ggtitle(tp)
+})
+
+# view one
+plots[[1]]
+ggsave("../figures/lm- compensation stocks.png", width = 7, height = 8)
+
+plots[[2]]
+ggsave("../figures/lm- depensation stocks.png", width = 7, height = 6)
+
