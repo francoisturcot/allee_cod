@@ -62,52 +62,108 @@ df %>% ggplot(aes(year, prod.rate))+
 
 ggsave("../figures/production rate.png", width = 8, height = 6)
 
+
 df_plot <- df %>%
-    group_by(stock) %>%
-    mutate(
-        max_biomass = max(biomass, na.rm = TRUE),
-        collapsed = biomass < 0.4 * max_biomass
-    ) %>%
-    ungroup()
-
+  group_by(stock) %>%
+  mutate(
+    max_biomass = max(biomass, na.rm = TRUE),
+    
+    below_20 = biomass < 0.2 * max_biomass,
+    above_40 = biomass > 0.4 * max_biomass,
+    
+    collapsed = {
+      x <- logical(n())
+      
+      for(i in seq_along(x)) {
+        
+        if(i == 1) {
+          x[i] <- below_20[i]
+        } else {
+          
+          # enter collapse state
+          if(below_20[i]) {
+            x[i] <- TRUE
+            
+            # remain collapsed until > 40%
+          } else if(x[i - 1] && !above_40[i]) {
+            x[i] <- TRUE
+            
+          } else {
+            x[i] <- FALSE
+          }
+        }
+      }
+      
+      x
+    },
+    
+    ever_collapsed = cumany(collapsed),
+    
+    status = case_when(
+      !ever_collapsed ~ "Initial",
+      collapsed ~ "Collapsed",
+      TRUE ~ "Recovered"
+    )
+  )
 df_plot <- df_plot %>%
-    mutate(
-        collapsed = factor(
-            collapsed,
-            levels = c(TRUE, FALSE),
-            labels = c("Collapsed (<40% max SSB)", "Not collapsed")
-        )
+  group_by(stock) %>%
+  mutate(
+    biomass_scaled = (biomass - min(biomass, na.rm = TRUE)) /
+      (max(biomass, na.rm = TRUE) - min(biomass, na.rm = TRUE))
+  ) %>%
+  ungroup()
+
+ggplot(df_plot, aes(x = year, y = biomass_scaled)) +
+  
+  geom_line(color = "grey") +
+  
+  geom_line(aes(
+    color = factor(
+      status,
+      levels = c("Initial", "Collapsed", "Recovered")
+    ),
+    group = 1
+  )) +
+  
+  facet_wrap(~stock, scales = "free") +
+  
+  scale_color_manual(
+    values = c(
+      "Initial" = "#619CFF",
+      "Collapsed" = "#F8766D",
+      "Recovered" = "#00BA38"
     )
+  ) +
+  
+  scale_x_continuous(
+    breaks = scales::pretty_breaks(n = 3),
+    labels = function(x) sprintf("'%02d", x %% 100)
+  ) +
+  
+  scale_y_continuous(
+    limits = c(0, 1),
+    breaks = seq(0, 1, by = 0.2)
+  ) +
+  
+  theme_bw() +
+  
+  theme(
+    axis.text.x = element_text(size = 6, angle = 45, hjust = 1),
+    axis.text.y = element_text(size = 6),
+    axis.title = element_text(size = 9),
+    strip.text = element_text(size = 7),
+    legend.text = element_text(size = 8),
+    legend.title = element_text(size = 9)
+  ) +
+  
+  labs(
+    x = "Year",
+    y = "Biomass (proportion of maximum)",
+    color = "Status",
+    title = ""
+  )
 
-ggplot(df_plot, aes(biomass, prod.rate, color = collapsed)) +
-    geom_line(size = 1) +
-    #geom_smooth(method = "lm", se = FALSE) +
-    facet_wrap(~ stock, scales = "free") +
-    theme_bw()
-
-ggplot(df_plot, aes(year, biomass, color = collapsed)) +
-    geom_point(size = 1) +
-    #geom_smooth(method = "lm", se = FALSE) +
-    facet_wrap(~ stock, scales = "free") +
-    theme_bw()+
-    theme(legend.position = "none")
-
-ggplot(df_plot, aes(year, biomass, color = collapsed)) +
-    geom_point(size = 1) +
-    facet_wrap(~ stock, scales = "free") +
-    theme_bw() +
-    xlab("Year")+
-    ylab("Biomass")+
-    theme(
-        legend.position = "none",
-        axis.text.x = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.ticks.y = element_blank()
-    )
-
-
-ggsave("../figures/depletion.png", width = 7, height = 6)
+ggsave("../figures/depletion.png", width = 6, height = 6)
 
 
 #stocks table
