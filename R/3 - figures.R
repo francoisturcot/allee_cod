@@ -101,10 +101,92 @@ df_plot <- df %>%
     
     status = case_when(
       !ever_collapsed ~ "Initial",
-      collapsed ~ "Collapsed",
+      collapsed ~ "Depleted",
       TRUE ~ "Recovered"
     )
   )
+
+str(df_plot)
+
+library(dplyr)
+library(dplyr)
+
+min_b_ratio <- df_plot %>%
+  mutate(b_ratio = biomass / max_biomass) %>%
+  group_by(stock) %>%
+  summarise(
+    min_b_bmax =  round(min(b_ratio, na.rm = TRUE), 2),
+    year_min = year[which.min(b_ratio)],
+    .groups = "drop"
+  ) %>%
+  arrange(min_b_bmax)
+
+min_b_ratio
+
+# Identify which stocks ever collapsed
+collapsed_stocks <- df_plot %>%
+  group_by(stock) %>%
+  summarise(
+    ever_collapsed = any(collapsed, na.rm = TRUE),
+    n_years_collapsed = sum(collapsed, na.rm = TRUE),
+    first_collapse_year = ifelse(
+      any(collapsed, na.rm = TRUE),
+      min(year[collapsed], na.rm = TRUE),
+      NA
+    ),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(ever_collapsed), first_collapse_year)
+
+collapsed_stocks
+
+library(dplyr)
+
+# A stock is considered "recovered" if:
+# 1. it collapsed at least once
+# 2. after collapsing, it later returned above the threshold
+#    (here using above_40)
+
+recovered_stocks <- df_plot %>%
+  group_by(stock) %>%
+  summarise(
+    ever_collapsed = any(collapsed, na.rm = TRUE),
+    
+    recovered = {
+      if(any(collapsed, na.rm = TRUE)) {
+        first_collapse <- min(year[collapsed], na.rm = TRUE)
+        any(above_40[year > first_collapse], na.rm = TRUE)
+      } else {
+        FALSE
+      }
+    },
+    
+    first_collapse_year = ifelse(
+      any(collapsed, na.rm = TRUE),
+      min(year[collapsed], na.rm = TRUE),
+      NA
+    ),
+    
+    recovery_year = {
+      if(any(collapsed, na.rm = TRUE)) {
+        first_collapse <- min(year[collapsed], na.rm = TRUE)
+        
+        yrs <- year[
+          year > first_collapse &
+            above_40
+        ]
+        
+        if(length(yrs) > 0) min(yrs) else NA
+      } else {
+        NA
+      }
+    },
+    
+    .groups = "drop"
+  )
+
+recovered_stocks
+
 df_plot <- df_plot %>%
   group_by(stock) %>%
   mutate(
@@ -113,6 +195,8 @@ df_plot <- df_plot %>%
   ) %>%
   ungroup()
 
+
+
 ggplot(df_plot, aes(x = year, y = biomass_scaled)) +
   
   geom_line(color = "grey") +
@@ -120,7 +204,7 @@ ggplot(df_plot, aes(x = year, y = biomass_scaled)) +
   geom_line(aes(
     color = factor(
       status,
-      levels = c("Initial", "Collapsed", "Recovered")
+      levels = c("Initial", "Depleted", "Recovered")
     ),
     group = 1
   )) +
@@ -130,14 +214,14 @@ ggplot(df_plot, aes(x = year, y = biomass_scaled)) +
   scale_color_manual(
     values = c(
       "Initial" = "#619CFF",
-      "Collapsed" = "#F8766D",
+      "Depleted" = "#F8766D",
       "Recovered" = "#00BA38"
     )
   ) +
   
   scale_x_continuous(
-    breaks = scales::pretty_breaks(n = 3),
-    labels = function(x) sprintf("'%02d", x %% 100)
+    breaks = scales::pretty_breaks(n = 3)#,
+    #labels = function(x) sprintf("'%02d", x %% 100)
   ) +
   
   scale_y_continuous(
@@ -148,7 +232,9 @@ ggplot(df_plot, aes(x = year, y = biomass_scaled)) +
   theme_bw() +
   
   theme(
-    axis.text.x = element_text(size = 6, angle = 45, hjust = 1),
+    
+    legend.position = "bottom",
+    axis.text.x = element_text(size = 6),#, angle = 45, hjust = 1),
     axis.text.y = element_text(size = 6),
     axis.title = element_text(size = 9),
     strip.text = element_text(size = 7),
@@ -163,7 +249,7 @@ ggplot(df_plot, aes(x = year, y = biomass_scaled)) +
     title = ""
   )
 
-ggsave("../figures/depletion.png", width = 6, height = 6)
+ggsave("../figures/depletion.png", width = 7, height = 8)
 
 
 #stocks table
@@ -178,6 +264,7 @@ table <- table %>%
     ) %>%
     ungroup()
 
+table
 #write.csv(table, "table.csv")
 
 #show all stocks
@@ -270,12 +357,15 @@ ggplot(df_plot, aes(x = biomass, y = prod.rate)) +
     theme_bw() +
     theme(legend.position = "none") +
     labs(
-        x = "Biomass",
+        x = "Biomass (proportion of maximum)",
         y = "Production rate",
         color = "Segment"
     )
 
 ggsave("../figures/segmented_all_stocks.png", width = 10, height = 10)
+
+
+
 
 #extract stock where the slope is positive before the breakpoint 
 #and negative after (allee effect threshold)
@@ -298,6 +388,8 @@ df_plot <- df %>%
     mutate(year = as.numeric(year))   # ensure year is numeric for plotting
 
 str(df_plot)
+
+
 
 #extract psi and verify if they have not recovered from going under
 
@@ -338,6 +430,47 @@ ggplot(df_plot, aes(x = biomass, y = prod.rate)) +
 df_plot <- df_plot %>%
     mutate(segment = ifelse(biomass <= psi, "before", "after"))
 
+
+#allee effect threshold
+
+
+# Find the biomass (relative to max biomass) where the BEFORE lm crosses 0
+
+crossing_df <- df_plot %>%
+  filter(stock == "4TVn") %>%
+  do({
+    
+    df_before <- filter(., biomass < unique(.$psi))
+    
+    # need at least 2 points to fit lm
+    if(nrow(df_before) < 2) return(tibble())
+    
+    # fit linear model on BEFORE segment
+    fit <- lm(prod.rate ~ biomass, data = df_before)
+    
+    # coefficients
+    intercept <- coef(fit)[1]
+    slope     <- coef(fit)[2]
+    
+    # x where y = 0
+    # 0 = intercept + slope * biomass
+    biomass_cross <- -intercept / slope
+    
+    # relative to maximum biomass
+    rel_biomass_cross <- biomass_cross / max(.$biomass, na.rm = TRUE)
+    
+    tibble(
+      biomass_cross = biomass_cross,
+      rel_biomass_cross = rel_biomass_cross
+    )
+    
+  }) %>%
+  ungroup()
+
+crossing_df[1]*100
+
+
+
 df_pred_lm_before <- df_plot %>%
     group_by(stock) %>%
     # fit lm on the post-break segment
@@ -360,6 +493,7 @@ ggplot(df_plot, aes(x = biomass, y = prod.rate)) +
     
     # vertical psi line
     geom_vline(aes(xintercept = psi),
+               colour = "grey",
                linetype = "dashed",
                linewidth = 0.8) +
     
@@ -382,18 +516,27 @@ ggplot(df_plot, aes(x = biomass, y = prod.rate)) +
     
     geom_hline(aes(yintercept = 0),
                linetype = "dashed",
+               colour = "grey",
                linewidth = 0.8) +
     
-    facet_wrap(~ stock, scales = "free", ncol = 3) +
+    facet_wrap(~ stock, ncol = 4, scales = "free_y")+#scales = "free", ncol = 3) +
+  
+  scale_x_continuous(
+    breaks = c(0, 0.25, 0.5, 0.75, 1),
+    limits = c(0, 1),
+    labels = c("0", "0.25", "0.50", "0.75", "1")
+  )+
+  
   theme_bw() +
-    theme(legend.position = "none") +
+    theme(legend.position = "none",
+          axis.text.x = element_text(size = 6)) +
     labs(
-        x = "Biomass (kt)",
+        x = "Biomass (proportion of maximum)",
         y = "Production rate (P/B)",
         color = "Segment"
     )
 
-ggsave("../figures/segmented_flip_stocks.png", width = 6, height = 5)
+ggsave("../figures/segmented_flip_stocks.png", width = 6, height = 4)
 
 
 res_only <- res %>%
@@ -454,7 +597,7 @@ ggplot(df_plot, aes(biomass, prod.rate)) +
     facet_wrap(~ stock, scales = "free",ncol=3) +
     theme_bw()+
   ylab("Production rate (P/B)")+
-  xlab("Biomass (kt)")
+  xlab("Biomass (proportion of maximum)")
 
 ggsave("../figures/lm.png", width = 7, height = 8)
 
@@ -497,7 +640,7 @@ ggplot(df_plot, aes(biomass, prod.rate)) +
   facet_wrap(~ stock, scales = "free",ncol=3) +
   theme_bw()+
   ylab("Production rate (P/B)")+
-  xlab("Biomass (kt)")
+  xlab("Biomass (proportion of maximum)")
 
 
 library(dplyr)
@@ -514,17 +657,176 @@ plots <- lapply(names(stocks_by_type), function(tp) {
   ggplot(df_sub, aes(biomass, prod.rate)) +
     geom_point(size = 1) +
     geom_smooth(method = "lm", se = FALSE) +
-    facet_wrap(~ stock, scales = "free", ncol = 3) +
+    facet_wrap(~ stock)+#, ncol = 4)+#scales = "free", ncol = 3) +
     theme_bw() +
+    scale_x_continuous(
+      breaks = c(0, 0.25, 0.5, 0.75, 1),
+      limits = c(0, 1),
+      labels = c("0", "0.25", "0.50", "0.75", "1")
+    )+
+    
+    theme_bw() +
+    theme(legend.position = "none",
+          axis.text.x = element_text(size = 6)) +
     ylab("Production rate (P/B)") +
-    xlab("Biomass (kt)") #+
+    xlab("Biomass (proportion of maximum)") #+
     #ggtitle(tp)
 })
 
 # view one
 plots[[1]]
-ggsave("../figures/lm- compensation stocks.png", width = 7, height = 8)
+ggsave("../figures/lm- compensation stocks.png", width = 6, height = 4)
 
 plots[[2]]
-ggsave("../figures/lm- depensation stocks.png", width = 7, height = 6)
+ggsave("../figures/lm- depensation stocks.png", width = 6, height = 4)
+
+
+library(dplyr)
+library(broom)
+library(ggplot2)
+
+#library(dplyr)
+library(broom)
+library(tidyr)
+library(ggplot2)
+
+# --- 1. Compute slope significance per stock ---
+sig_df <- df_plot %>%
+  group_by(stock) %>%
+  summarise(
+    model = list(lm(prod.rate ~ biomass, data = pick(everything()))),
+    .groups = "drop"
+  ) %>%
+  mutate(tidy_mod = lapply(model, broom::tidy)) %>%
+  tidyr::unnest(tidy_mod) %>%
+  filter(term == "biomass") %>%
+  transmute(
+    stock,
+    p.value,
+    signif = ifelse(p.value < 0.05, "*", "")
+  )
+
+
+# --- 2. Join back to data for plotting ---
+df_plot2 <- df_plot %>%
+  left_join(sig_df, by = "stock")
+
+
+# --- 3. Plot by stock type ---
+plots <- lapply(names(stocks_by_type), function(tp) {
+  
+  df_sub <- df_plot2 %>% 
+    filter(stock %in% stocks_by_type[[tp]])
+  
+  ggplot(df_sub, aes(biomass, prod.rate)) +
+    
+    geom_point() +
+    
+    geom_smooth(method = "lm", se = FALSE) +
+    
+    geom_text(
+      data = df_sub %>%
+        group_by(stock) %>%
+        summarise(signif = first(signif)),
+      aes(x = Inf, y = Inf, label = signif),
+      inherit.aes = FALSE,
+      hjust = 1.2,
+      vjust = 1.2,
+      size = 8,
+      colour = "red"
+    )+
+    
+    facet_wrap(~ stock) +
+    
+    theme_bw() +
+    
+    scale_x_continuous(
+      breaks = c(0, 0.25, 0.5, 0.75, 1),
+      limits = c(0, 1),
+      labels = c("0", "0.25", "0.50", "0.75", "1")
+    ) +
+    
+    theme(
+      legend.position = "none",
+      axis.text.x = element_text(size = 6)
+    ) +
+    
+    labs(
+      x = "Biomass (proportion of maximum)",
+      y = "Production rate (P/B)"
+    )
+})
+
+# view one
+plots[[1]]
+ggsave("../figures/lm- compensation stocks.png", width = 6, height = 4)
+
+plots[[2]]
+ggsave("../figures/lm- depensation stocks.png", width = 6, height = 4)
+
+
+library(dplyr)
+library(broom)
+
+sig_df <- df_plot %>%
+  group_by(stock) %>%
+  summarise(
+    fit = list(lm(prod.rate ~ biomass, data = pick(everything()))),
+    .groups = "drop"
+  ) %>%
+  mutate(tidy = lapply(fit, broom::tidy)) %>%
+  tidyr::unnest(tidy) %>%
+  filter(term == "biomass") %>%
+  mutate(
+    slope_sign = ifelse(estimate > 0, "+", "-"),
+    signif = ifelse(p.value < 0.05, "S", "NS"),
+    label = paste0(slope_sign, " ", signif)
+  ) %>%
+  dplyr::select(stock, label)
+
+df_plot2 <- df_plot %>%
+  left_join(sig_df, by = "stock")
+
+library(ggplot2)
+
+ggplot(df_plot2, aes(biomass, prod.rate)) +
+  
+  geom_point(size = 1) +
+  
+  geom_smooth(method = "lm", se = FALSE) +
+  
+  # --- top-right label per facet ---
+  geom_text(
+    data = df_plot2 %>%
+      group_by(stock) %>%
+      summarise(label = first(label)),
+    aes(x = Inf, y = Inf, label = label),
+    inherit.aes = FALSE,
+    hjust = 1.2,
+    vjust = 1.2,
+    size = 3
+  ) +
+  
+  facet_wrap(~stock) +
+  
+  scale_x_continuous(
+    breaks = c(0, 0.25, 0.5, 0.75, 1),
+    limits = c(0, 1),
+    labels = c("0", "0.25", "0.50", "0.75", "1")
+  ) +
+  
+  theme_bw() +
+  
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(size = 6)
+  ) +
+  
+  labs(
+    x = "Biomass (proportion of maximum)",
+    y = "Production rate (P/B)"
+  )
+
+ggsave("../figures/lm all stocks with test.png", width = 6, height = 6)
+
 

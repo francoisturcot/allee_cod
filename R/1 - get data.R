@@ -10,7 +10,7 @@ options(scipen = 999)
 ### read NW atlantic cod stocks data
 
 df = read.csv("../data/cod table.csv")
-df$ssb = NULL
+df = df %>% dplyr::select(year, stock, catch, biomass)
 
 df$biomass = df$biomass/1000
 df$catch = df$catch/1000

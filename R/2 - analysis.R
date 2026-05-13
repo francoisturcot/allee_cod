@@ -14,6 +14,16 @@ df_depletion <- df %>%
         .groups = "drop"
     )
 
+
+str(df)
+
+df <- df %>%
+  group_by(stock) %>%
+  mutate(biomass_scaled = biomass / max(biomass, na.rm = TRUE)) %>%
+  ungroup()
+
+df$biomass = df$biomass_scaled
+
 #perform segmented and linear regressions on each stocks
 
 ns = length(unique(df$stock))

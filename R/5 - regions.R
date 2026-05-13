@@ -37,6 +37,9 @@ dat <- dat %>%
 
 str(dat)
 
+dat = merge(dat,min_b_ratio)
+dat$depletion = dat$min_b_bmax
+
 dat %>% ggplot(aes(as.factor(allee_bin), prod_lowB))+
   geom_boxplot()
 
