@@ -199,9 +199,9 @@ df_plot <- df_plot %>%
 
 ggplot(df_plot, aes(x = year, y = biomass_scaled)) +
   
-  geom_line(color = "grey") +
+  #geom_line(color = "grey") +
   
-  geom_line(aes(
+  geom_point(aes(
     color = factor(
       status,
       levels = c("Initial", "Depleted", "Recovered")
@@ -246,6 +246,46 @@ ggplot(df_plot, aes(x = year, y = biomass_scaled)) +
     x = "Year",
     y = "Biomass (proportion of maximum)",
     color = "Status",
+    title = ""
+  )
+
+#ggsave("../figures/depletion.png", width = 7, height = 8)
+
+ggplot(df_plot, aes(x = year, y = biomass_scaled)) +
+  
+  geom_line() +
+  
+  #geom_hline(yintercept = 0.2, color = "red") +
+  #geom_hline(yintercept = 0.4, color = "green") +
+  geom_hline(yintercept = 0.2, color = "#C44E52") +  # soft red-orange
+  geom_hline(yintercept = 0.4, color = "#009E73") +  # muted green
+  
+  facet_wrap(~stock, scales = "free") +
+  
+  scale_x_continuous(
+    breaks = scales::pretty_breaks(n = 3)
+  ) +
+  
+  scale_y_continuous(
+    limits = c(0, 1),
+    breaks = seq(0, 1, by = 0.2)
+  ) +
+  
+  theme_bw() +
+  
+  theme(
+    legend.position = "bottom",
+    axis.text.x = element_text(size = 6),
+    axis.text.y = element_text(size = 6),
+    axis.title = element_text(size = 9),
+    strip.text = element_text(size = 7),
+    legend.text = element_text(size = 8),
+    legend.title = element_text(size = 9)
+  ) +
+  
+  labs(
+    x = "Year",
+    y = "Biomass (proportion of maximum)",
     title = ""
   )
 
@@ -519,7 +559,7 @@ ggplot(df_plot, aes(x = biomass, y = prod.rate)) +
                colour = "grey",
                linewidth = 0.8) +
     
-    facet_wrap(~ stock, ncol = 4, scales = "free_y")+#scales = "free", ncol = 3) +
+    facet_wrap(~ stock, ncol = 4) +
   
   scale_x_continuous(
     breaks = c(0, 0.25, 0.5, 0.75, 1),
@@ -532,7 +572,7 @@ ggplot(df_plot, aes(x = biomass, y = prod.rate)) +
           axis.text.x = element_text(size = 6)) +
     labs(
         x = "Biomass (proportion of maximum)",
-        y = "Production rate (P/B)",
+        y = "Relative surplus production",
         color = "Segment"
     )
 
@@ -753,7 +793,7 @@ plots <- lapply(names(stocks_by_type), function(tp) {
     
     labs(
       x = "Biomass (proportion of maximum)",
-      y = "Production rate (P/B)"
+      y = "Relative surplus production"
     )
 })
 
