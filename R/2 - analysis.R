@@ -1,5 +1,6 @@
-source("1 - get data.R")
+source("R/1 - get data.R")
 library(mgcv)
+library(segmented)
 
 # calculate lrp as 40% max biomass
 # calculate level of depletion as minimum biomass / lrp
@@ -23,6 +24,11 @@ df <- df %>%
   ungroup()
 
 df$biomass = df$biomass_scaled
+
+ggplot(df, aes(year, biomass))+
+  geom_line()+
+  facet_wrap(.~stock, scales = "free")
+
 
 #perform segmented and linear regressions on each stocks
 
@@ -129,5 +135,5 @@ for (i in 1:ns){
 
 res = res[-1,]
 res = merge(res,df_depletion, by = c("stock"))
-write.csv(res, "../figures/slopes.csv")
+#write.csv(res, "../figures/slopes.csv")
 

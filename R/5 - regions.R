@@ -84,3 +84,28 @@ dat %>% ggplot(aes(as.factor(status_bin), prod_lowB))+
 
 dat %>% ggplot(aes(as.factor(status_bin), depletion))+
   geom_boxplot()
+
+
+head(dat)
+library(dplyr)
+
+dat %>%
+  group_by(region) %>%
+  summarise(
+    n = n(),
+    across(
+      c(prod_lowB, depletion),
+      list(
+        median = ~ median(.x, na.rm = TRUE),
+        #q25    = ~ quantile(.x, 0.25, na.rm = TRUE),
+        #q75    = ~ quantile(.x, 0.75, na.rm = TRUE),
+        #min    = ~ min(.x, na.rm = TRUE),
+        #max    = ~ max(.x, na.rm = TRUE),
+        mean   = ~ mean(.x, na.rm = TRUE),
+        sd     = ~ sd(.x, na.rm = TRUE)
+      ),
+      .names = "{.col}_{.fn}"
+    ),
+    .groups = "drop"
+  ) %>%
+  mutate(across(where(is.numeric), ~ round(.x, 2)))

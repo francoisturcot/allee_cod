@@ -48,7 +48,7 @@ df %>% ggplot(aes(year, biomass))+
     xlab("")
 
 
-ggsave("../figures/biomass.png", width = 8, height = 6)
+#ggsave("../figures/biomass.png", width = 8, height = 6)
 
 df %>% ggplot(aes(year, prod.rate))+
     geom_line()+
@@ -60,7 +60,7 @@ df %>% ggplot(aes(year, prod.rate))+
     ylab("Production rate")+
     xlab("")
 
-ggsave("../figures/production rate.png", width = 8, height = 6)
+#ggsave("../figures/production rate.png", width = 8, height = 6)
 
 
 df_plot <- df %>%
@@ -289,7 +289,7 @@ ggplot(df_plot, aes(x = year, y = biomass_scaled)) +
     title = ""
   )
 
-ggsave("../figures/depletion.png", width = 7, height = 8)
+#ggsave("../figures/depletion.png", width = 7, height = 8)
 
 
 #stocks table
@@ -402,7 +402,7 @@ ggplot(df_plot, aes(x = biomass, y = prod.rate)) +
         color = "Segment"
     )
 
-ggsave("../figures/segmented_all_stocks.png", width = 10, height = 10)
+#ggsave("../figures/segmented_all_stocks.png", width = 10, height = 10)
 
 
 
@@ -576,7 +576,7 @@ ggplot(df_plot, aes(x = biomass, y = prod.rate)) +
         color = "Segment"
     )
 
-ggsave("../figures/segmented_flip_stocks.png", width = 6, height = 4)
+#ggsave("../figures/segmented_flip_stocks.png", width = 6, height = 4)
 
 
 res_only <- res %>%
@@ -639,7 +639,7 @@ ggplot(df_plot, aes(biomass, prod.rate)) +
   ylab("Production rate (P/B)")+
   xlab("Biomass (proportion of maximum)")
 
-ggsave("../figures/lm.png", width = 7, height = 8)
+#ggsave("../figures/lm.png", width = 7, height = 8)
 
 
 #the criterias for a stock with a lm to be under allee effect is 
@@ -715,10 +715,10 @@ plots <- lapply(names(stocks_by_type), function(tp) {
 
 # view one
 plots[[1]]
-ggsave("../figures/lm- compensation stocks.png", width = 6, height = 4)
+#ggsave("../figures/lm- compensation stocks.png", width = 6, height = 4)
 
 plots[[2]]
-ggsave("../figures/lm- depensation stocks.png", width = 6, height = 4)
+#ggsave("../figures/lm- depensation stocks.png", width = 6, height = 4)
 
 
 library(dplyr)
@@ -799,10 +799,10 @@ plots <- lapply(names(stocks_by_type), function(tp) {
 
 # view one
 plots[[1]]
-ggsave("../figures/lm- compensation stocks.png", width = 6, height = 4)
+#ggsave("../figures/lm- compensation stocks.png", width = 6, height = 4)
 
 plots[[2]]
-ggsave("../figures/lm- depensation stocks.png", width = 6, height = 4)
+#ggsave("../figures/lm- depensation stocks.png", width = 6, height = 4)
 
 
 library(dplyr)
@@ -867,6 +867,6 @@ ggplot(df_plot2, aes(biomass, prod.rate)) +
     y = "Production rate (P/B)"
   )
 
-ggsave("../figures/lm all stocks with test.png", width = 6, height = 6)
+#ggsave("../figures/lm all stocks with test.png", width = 6, height = 6)
 
 
