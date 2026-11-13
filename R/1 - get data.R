@@ -128,4 +128,4 @@ df %>% filter(!stock %in% c("2J3KL", "4TVn")) %>% ggplot(aes(year, stock))+
   xlab("")+
   ylab("Stock")
 
-ggsave("figures/time_series.png")
+#ggsave("figures/time_series.png")

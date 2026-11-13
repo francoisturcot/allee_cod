@@ -121,16 +121,16 @@ p <- ggplot(df_plot, aes(x = biomass, y = prod.rate)) +
 
 
 p
-
-ggsave(
-  "figures/segmented_flip_stocks.tiff",
-  plot = p,
-  width = 170,
-  height = 100,
-  units = "mm",
-  dpi = 600,
-  compression = "lzw"
-)
+# 
+# ggsave(
+#   "figures/segmented_flip_stocks.tiff",
+#   plot = p,
+#   width = 170,
+#   height = 100,
+#   units = "mm",
+#   dpi = 600,
+#   compression = "lzw"
+# )
 
 p
 
@@ -181,11 +181,6 @@ ne_stocks <- c("NEAR", "ICE", "FAPL", "IS", "IIIaW-IV-VIId",
 stock_order <- c(nw_stocks, ne_stocks)
 stock_order <- stock_order[stock_order %in% unique(df$stock)]
 
-# Add region column
-df_plot <- df_plot %>%
-  mutate(
-    region = ifelse(stock %in% nw_stocks, "Northwest Atlantic", "Northeast Atlantic")
-  )
 
 # Common plot function
 make_panel <- function(data, title) {
@@ -207,18 +202,22 @@ make_panel <- function(data, title) {
     ggtitle(title)
 }
 
-p_nw <- make_panel(df_plot %>% filter(region == "Northwest Atlantic"), "Northwest Atlantic")
-p_ne <- make_panel(df_plot %>% filter(region == "Northeast Atlantic"), "Northeast Atlantic")
+# all stocks for the depletion figure
+df_dep <- df
+
+df_dep$region <- ifelse(df_dep$stock %in% nw_stocks,
+                        "Northwest Atlantic", "Northeast Atlantic")
+
+p_nw <- make_panel(filter(df_dep, region == "Northwest Atlantic"), "Northwest Atlantic")
+p_ne <- make_panel(filter(df_dep, region == "Northeast Atlantic"), "Northeast Atlantic")
+
+n_nw <- sum(unique(df_dep$stock) %in% nw_stocks)
+n_ne <- sum(unique(df_dep$stock) %in% ne_stocks)
 
 p_combined <- p_nw / p_ne +
-  plot_layout(heights = c(
-    ceiling(sum(unique(df_plot$stock) %in% nw_stocks) / 5),
-    ceiling(sum(unique(df_plot$stock) %in% ne_stocks) / 5)
-  )) +
-  plot_annotation(
-    caption = "Year",
-    theme = theme(plot.caption = element_text(hjust = 0.5, size = 9))
-  ) &
+  plot_layout(heights = c(ceiling(n_nw / 4), ceiling(n_ne / 4))) +
+  plot_annotation(caption = "Year",
+                  theme = theme(plot.caption = element_text(hjust = 0.5, size = 9))) &
   theme(plot.title = element_text(size = 10, face = "bold"))
 
 # Add shared y-axis label
@@ -229,14 +228,14 @@ p_final <- wrap_elements(
 
 p_final 
 
-ggsave("figures/depletion.png", p_final, width = 7, height = 9)
+#ggsave("figures/depletion.png", p_final, width = 7, height = 9)
 
-ggsave(
-  "figures/depletion.tiff",
-  plot = p_final,
-  width = 170,
-  height = 100,
-  units = "mm",
-  dpi = 600,
-  compression = "lzw"
-)
+# ggsave(
+#   "figures/depletion.tiff",
+#   plot = p_final,
+#   width = 170,
+#   height = 100,
+#   units = "mm",
+#   dpi = 600,
+#   compression = "lzw"
+# )
